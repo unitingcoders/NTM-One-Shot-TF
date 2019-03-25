@@ -10,12 +10,18 @@ from MANN.Utils.Generator import OmniglotGenerator
 from MANN.Utils.Metrics import accuracy_instance
 from MANN.Utils.tf_utils import update_tensor
 
-def omniglot():
-
+def omniglot(load_model=False):
+    
     sess = tf.InteractiveSession()
+    saver = tf.train.Saver()
 
-    input_ph = tf.placeholder(dtype=tf.float32, shape=(16,50,400))   #(batch_size, time, input_dim)
-    target_ph = tf.placeholder(dtype=tf.int32, shape=(16,50))     #(batch_size, time)(label_indices)
+    if(load_model):
+        ckpt = tf.train.get_checkpoint_state('./saved/')
+        if ckpt and ckpt.model_checkpoint_path:
+            saver.restore(sess, ckpt.model_checkpoint_path)
+        else:
+            print("No Checkpoint found, setting load to false")
+            load_model = False
 
     ##Global variables for Omniglot Problem
     nb_reads = 4
@@ -25,6 +31,10 @@ def omniglot():
     input_size = 20*20
     batch_size = 16
     nb_samples_per_class = 10
+    
+    input_ph = tf.placeholder(dtype=tf.float32, shape=(batch_size, nb_class * nb_samples_per_class, input_size))   #(batch_size, time, input_dim)
+    target_ph = tf.placeholder(dtype=tf.int32, shape=(batch_size, nb_class * nb_samples_per_class))     #(batch_size, time)(label_indices)
+
 
     #Load Data
     generator = OmniglotGenerator(data_folder='./data/omniglot', batch_size=batch_size, nb_samples=nb_class, nb_samples_per_class=nb_samples_per_class, max_rotation=0., max_shift=0., max_iter=None)
@@ -75,8 +85,9 @@ def omniglot():
     all_scores, scores, accs = [],[],np.zeros(generator.nb_samples_per_class)
 
 
-    sess.run(tf.global_variables_initializer())
-
+    if(!load_model):
+            sess.run(tf.global_variables_initializer())
+            
     print 'Training the model'
 
 
@@ -102,6 +113,7 @@ def omniglot():
                 print(accs / 100.0)
                 print('Episode %05d: %.6f' % (i, np.mean(score)))
                 scores, accs = [], np.zeros(generator.nb_samples_per_class)
+                saver.save(sess, './saved/model.ckpt', global_step=i+1)
 
 
     except KeyboardInterrupt:
