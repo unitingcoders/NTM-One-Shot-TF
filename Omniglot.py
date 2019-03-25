@@ -85,7 +85,7 @@ def omniglot(load_model=False):
     all_scores, scores, accs = [],[],np.zeros(generator.nb_samples_per_class)
 
 
-    if(!load_model):
+    if not load_model:
             sess.run(tf.global_variables_initializer())
             
     print 'Training the model'
